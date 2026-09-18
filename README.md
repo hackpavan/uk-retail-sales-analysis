@@ -1,8 +1,5 @@
 # UK Retail Sales Analytics
 
-A portfolio-ready end-to-end **Data Analyst project** using Python, SQL and an interactive browser dashboard to analyse retail sales performance across products, customer segments and UK regions.
-
-> **Data note:** The dataset in this repository is synthetic and was generated specifically for portfolio demonstration. It contains no real customers or confidential business data.
 
 ## Project objective
 
