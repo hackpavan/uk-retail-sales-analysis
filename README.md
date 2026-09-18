@@ -1,5 +1,18 @@
 # UK Retail Sales Analytics
 
+## Live Dashboard
+
+Explore the interactive dashboard here:
+
+**[Open the UK Retail Sales Dashboard](https://hackpavan.github.io/uk-retail-sales-analysis/)**
+
+The dashboard includes interactive filters for:
+
+* Region
+* Product Category
+* Customer Segment
+
+It summarises revenue, profit, profit margin, order volume, average order value, monthly sales trends, regional performance, and top products.
 
 ## Project objective
 
