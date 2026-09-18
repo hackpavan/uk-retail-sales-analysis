@@ -1,6 +1,8 @@
 # UK Retail Sales Analytics
 
- **Data Analyst project** using Python, SQL and Power BI concepts to analyse retail sales performance across products, customer segments and UK regions.
+A portfolio-ready end-to-end **Data Analyst project** using Python, SQL and an interactive browser dashboard to analyse retail sales performance across products, customer segments and UK regions.
+
+> **Data note:** The dataset in this repository is synthetic and was generated specifically for portfolio demonstration. It contains no real customers or confidential business data.
 
 ## Project objective
 
@@ -44,6 +46,22 @@ The fictional retail management team wants to understand:
 - The dataset intentionally applies stronger discounting and demand in November/December, making it possible to analyse the trade-off between seasonal revenue growth and margin.
 
 These results are **demonstrations of analytical methods on synthetic data**, not estimates of the real UK retail market.
+
+
+## Interactive dashboard
+
+This project includes a browser-based interactive dashboard, so Power BI Desktop is **not required** to view the portfolio output.
+
+![Retail Sales Dashboard](images/retail_sales_dashboard.png)
+
+Open:
+
+```text
+dashboard/retail_sales_dashboard.html
+```
+
+The dashboard supports filters for **Region**, **Category**, and **Customer Segment**, with KPIs and charts updating dynamically.
+
 
 ## Visual analysis
 
