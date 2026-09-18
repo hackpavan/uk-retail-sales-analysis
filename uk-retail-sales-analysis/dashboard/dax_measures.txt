@@ -1,0 +1,37 @@
+-- Create these measures in Power BI
+
+Total Revenue =
+SUM(retail_sales_clean[Revenue])
+
+Total Profit =
+SUM(retail_sales_clean[Profit])
+
+Total Orders =
+DISTINCTCOUNT(retail_sales_clean[Order_ID])
+
+Total Customers =
+DISTINCTCOUNT(retail_sales_clean[Customer_ID])
+
+Average Order Value =
+DIVIDE([Total Revenue], [Total Orders])
+
+Profit Margin % =
+DIVIDE([Total Profit], [Total Revenue])
+
+Units Sold =
+SUM(retail_sales_clean[Quantity])
+
+Revenue Previous Month =
+CALCULATE(
+    [Total Revenue],
+    DATEADD(retail_sales_clean[Order_Date], -1, MONTH)
+)
+
+Revenue MoM % =
+DIVIDE(
+    [Total Revenue] - [Revenue Previous Month],
+    [Revenue Previous Month]
+)
+
+Revenue per Customer =
+DIVIDE([Total Revenue], [Total Customers])
