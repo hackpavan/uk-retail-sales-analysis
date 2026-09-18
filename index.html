@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UK Retail Sales Analytics Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Arial,Helvetica,sans-serif; background:#f6f7f9; color:#111; }
+    .wrap { max-width:1500px; margin:auto; padding:28px; }
+    h1 { margin:0 0 6px; font-size:30px; }
+    .sub { color:#666; margin-bottom:20px; }
+    .filters { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .filter,.kpi,.panel { background:#fff; border:1px solid #ddd; border-radius:12px; }
+    .filter { padding:12px 14px; }
+    label { font-size:12px; font-weight:700; display:block; margin-bottom:6px; }
+    select { width:100%; padding:9px; border:1px solid #bbb; border-radius:7px; background:#fff; }
+    .kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin:16px 0; }
+    .kpi { padding:18px; }
+    .kpi small { display:block; color:#666; font-weight:700; }
+    .kpi strong { display:block; font-size:28px; margin-top:8px; }
+    .grid2 { display:grid; grid-template-columns:1.6fr 1fr; gap:12px; }
+    .grid3 { display:grid; grid-template-columns:1fr 1.2fr .9fr; gap:12px; margin-top:12px; }
+    .panel { min-height:390px; padding:4px; }
+    .note { margin-top:16px; color:#666; font-size:13px; }
+    .error { padding:20px; background:#fff3f3; border:1px solid #e4bcbc; border-radius:10px; display:none; }
+    @media(max-width:900px){
+      .filters,.kpis,.grid2,.grid3 { grid-template-columns:1fr 1fr; }
+    }
+    @media(max-width:600px){
+      .filters,.kpis,.grid2,.grid3 { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>UK Retail Sales Performance Dashboard — 2025</h1>
+  <div class="sub">Synthetic portfolio dataset • Interactive GitHub Pages dashboard</div>
+
+  <div id="err" class="error"></div>
+
+  <div class="filters">
+    <div class="filter"><label>REGION</label><select id="region"><option>All</option></select></div>
+    <div class="filter"><label>CATEGORY</label><select id="category"><option>All</option></select></div>
+    <div class="filter"><label>CUSTOMER SEGMENT</label><select id="segment"><option>All</option></select></div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><small>TOTAL REVENUE</small><strong id="revenue">—</strong></div>
+    <div class="kpi"><small>TOTAL PROFIT</small><strong id="profit">—</strong></div>
+    <div class="kpi"><small>PROFIT MARGIN</small><strong id="margin">—</strong></div>
+    <div class="kpi"><small>TOTAL ORDERS</small><strong id="orders">—</strong></div>
+    <div class="kpi"><small>AVG ORDER VALUE</small><strong id="aov">—</strong></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel"><div id="monthly"></div></div>
+    <div class="panel"><div id="categories"></div></div>
+  </div>
+
+  <div class="grid3">
+    <div class="panel"><div id="regions"></div></div>
+    <div class="panel"><div id="products"></div></div>
+    <div class="panel"><div id="segments"></div></div>
+  </div>
+
+  <div class="note">
+    Data is synthetic and created for portfolio demonstration. Filters update all KPIs and charts.
+  </div>
+</div>
+
+<script>
+const DATA_URL = "data/processed/retail_sales_clean.csv";
+let DATA = [];
+
+function compactGBP(v){
+  if (Math.abs(v) >= 1e6) return "£" + (v/1e6).toFixed(2) + "M";
+  if (Math.abs(v) >= 1e3) return "£" + (v/1e3).toFixed(1) + "K";
+  return "£" + v.toFixed(2);
+}
+function uniq(rows,key){ return [...new Set(rows.map(r=>r[key]).filter(Boolean))].sort(); }
+function addOptions(id, vals){
+  const el = document.getElementById(id);
+  vals.forEach(v => { const o=document.createElement("option"); o.value=v; o.textContent=v; el.appendChild(o); });
+}
+function filtered(){
+  const r=document.getElementById("region").value;
+  const c=document.getElementById("category").value;
+  const s=document.getElementById("segment").value;
+  return DATA.filter(x =>
+    (r==="All" || x.Region===r) &&
+    (c==="All" || x.Category===c) &&
+    (s==="All" || x.Customer_Segment===s)
+  );
+}
+function groupSum(rows,key,val){
+  const m={};
+  rows.forEach(r=>{ const k=r[key]; m[k]=(m[k]||0)+Number(r[val]||0); });
+  return m;
+}
+function render(){
+  const rows=filtered();
+  const revenue=rows.reduce((a,b)=>a+Number(b.Revenue||0),0);
+  const profit=rows.reduce((a,b)=>a+Number(b.Profit||0),0);
+  const orders=new Set(rows.map(x=>x.Order_ID)).size;
+  const margin=revenue ? profit/revenue : 0;
+  const aov=orders ? revenue/orders : 0;
+
+  revenueEl=document.getElementById("revenue"); revenueEl.textContent=compactGBP(revenue);
+  document.getElementById("profit").textContent=compactGBP(profit);
+  document.getElementById("margin").textContent=(margin*100).toFixed(2)+"%";
+  document.getElementById("orders").textContent=orders.toLocaleString("en-GB");
+  document.getElementById("aov").textContent="£"+aov.toFixed(2);
+
+  const mon={};
+  rows.forEach(x=>{ const k=x.Order_Date.slice(0,7); mon[k]=(mon[k]||0)+Number(x.Revenue||0); });
+  const mx=Object.keys(mon).sort();
+  Plotly.react("monthly",[{x:mx,y:mx.map(k=>mon[k]),type:"scatter",mode:"lines+markers",
+    hovertemplate:"%{x}<br>Revenue: £%{y:,.0f}<extra></extra>"}],
+    {title:"Monthly Revenue Trend",margin:{l:65,r:20,t:55,b:65},yaxis:{title:"Revenue (£)"},
+     paper_bgcolor:"white",plot_bgcolor:"white"},{responsive:true,displaylogo:false});
+
+  const cats=Object.entries(groupSum(rows,"Category","Revenue")).sort((a,b)=>b[1]-a[1]);
+  Plotly.react("categories",[{x:cats.map(x=>x[0]),y:cats.map(x=>x[1]),type:"bar",
+    hovertemplate:"%{x}<br>Revenue: £%{y:,.0f}<extra></extra>"}],
+    {title:"Revenue by Category",margin:{l:65,r:20,t:55,b:95},yaxis:{title:"Revenue (£)"},
+     paper_bgcolor:"white",plot_bgcolor:"white"},{responsive:true,displaylogo:false});
+
+  const regs=Object.entries(groupSum(rows,"Region","Revenue")).sort((a,b)=>a[1]-b[1]).slice(-8);
+  Plotly.react("regions",[{y:regs.map(x=>x[0]),x:regs.map(x=>x[1]),type:"bar",orientation:"h",
+    hovertemplate:"%{y}<br>Revenue: £%{x:,.0f}<extra></extra>"}],
+    {title:"Top Regions",margin:{l:110,r:20,t:55,b:55},xaxis:{title:"Revenue (£)"},
+     paper_bgcolor:"white",plot_bgcolor:"white"},{responsive:true,displaylogo:false});
+
+  const prods=Object.entries(groupSum(rows,"Product_Name","Revenue")).sort((a,b)=>b[1]-a[1]).slice(0,10).reverse();
+  Plotly.react("products",[{y:prods.map(x=>x[0]),x:prods.map(x=>x[1]),type:"bar",orientation:"h",
+    hovertemplate:"%{y}<br>Revenue: £%{x:,.0f}<extra></extra>"}],
+    {title:"Top 10 Products",margin:{l:155,r:20,t:55,b:55},xaxis:{title:"Revenue (£)"},
+     paper_bgcolor:"white",plot_bgcolor:"white"},{responsive:true,displaylogo:false});
+
+  const sr=groupSum(rows,"Customer_Segment","Revenue");
+  const sp=groupSum(rows,"Customer_Segment","Profit");
+  const sk=Object.keys(sr).sort();
+  Plotly.react("segments",[
+    {x:sk,y:sk.map(k=>sr[k]),type:"bar",name:"Revenue"},
+    {x:sk,y:sk.map(k=>sp[k]||0),type:"bar",name:"Profit"}],
+    {title:"Customer Segments",barmode:"group",margin:{l:65,r:20,t:55,b:90},yaxis:{title:"£"},
+     paper_bgcolor:"white",plot_bgcolor:"white"},{responsive:true,displaylogo:false});
+}
+
+Papa.parse(DATA_URL,{
+  download:true,
+  header:true,
+  dynamicTyping:true,
+  complete: result => {
+    DATA=result.data.filter(r=>r && r.Order_ID);
+    addOptions("region",uniq(DATA,"Region"));
+    addOptions("category",uniq(DATA,"Category"));
+    addOptions("segment",uniq(DATA,"Customer_Segment"));
+    ["region","category","segment"].forEach(id=>document.getElementById(id).addEventListener("change",render));
+    render();
+  },
+  error: err => {
+    const box=document.getElementById("err");
+    box.style.display="block";
+    box.textContent="Could not load the CSV. Make sure this file is published from the repository root with data/processed/retail_sales_clean.csv present.";
+  }
+});
+</script>
+</body>
+</html>
